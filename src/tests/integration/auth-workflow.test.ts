@@ -25,6 +25,12 @@ describe("Auth & Authz Workflow Integration", () => {
   beforeAll(async () => {
     console.log("DATABASE_URL:", process.env.DATABASE_URL);
     console.log("Setting up test data...");
+    
+    // Clean up stale test data to ensure test isolation
+    await prisma.workspaceMembership.deleteMany({ where: { user: { email: { endsWith: "@test.com" } } } });
+    await prisma.workspaceInvitation.deleteMany({ where: { email: { endsWith: "@test.com" } } });
+    await prisma.user.deleteMany({ where: { email: { endsWith: "@test.com" } } });
+
     // 1. Setup a test workspace and admin user
     const admin = await prisma.user.create({
       data: {
@@ -97,7 +103,7 @@ describe("Auth & Authz Workflow Integration", () => {
       // 3. Accept invite
       await acceptInvite({
         token: rawToken,
-        password: "password123",
+        password: "StrongPass123!",
         name: "New User",
       });
 
@@ -212,7 +218,11 @@ describe("Auth & Authz Workflow Integration", () => {
         role: "VIEWER",
       });
 
-      await revokeInvitation(invitation.id, adminUserId);
+      await revokeInvitation({
+        workspaceId,
+        invitationId: invitation.id,
+        actorUserId: adminUserId,
+      });
 
       const refreshed = await prisma.workspaceInvitation.findUnique({
         where: { id: invitation.id }

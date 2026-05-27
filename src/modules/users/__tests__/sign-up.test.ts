@@ -4,12 +4,17 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { signUpUser } from "../sign-up";
 import { DuplicateEmailError } from "@/lib/auth/errors";
+import { getPostAuthRedirectForUser } from "@/lib/auth/post-auth-redirect";
 
 vi.mock("bcrypt", () => ({
   default: {
     hash: vi.fn().mockResolvedValue("hashed-password"),
     compare: vi.fn(),
   },
+}));
+
+vi.mock("@/lib/auth/post-auth-redirect", () => ({
+  getPostAuthRedirectForUser: vi.fn(),
 }));
 
 const mockFindUnique = vi.mocked(prisma.user.findUnique);
@@ -20,6 +25,12 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
+const mockRequest = {
+  headers: {
+    get: (name: string) => (name === "x-trustdesk-csrf" ? "1" : null),
+  },
+} as unknown as Request;
+
 describe("signUpUser", () => {
   it("creates user with hashed password and returns onboarding when no workspace", async () => {
     mockFindUnique.mockResolvedValue(null);
@@ -28,21 +39,24 @@ describe("signUpUser", () => {
       email: "amr@example.com",
       name: "Amr",
     } as never);
+    vi.mocked(getPostAuthRedirectForUser).mockResolvedValue("/onboarding");
 
     const result = await signUpUser({
       name: "Amr",
       email: "amr@example.com",
-      password: "StrongPass123",
-    });
+      password: "StrongPass123!",
+    }, mockRequest);
 
     expect(result.user.email).toBe("amr@example.com");
     expect(result.next).toBe("/onboarding");
-    expect(bcrypt.hash).toHaveBeenCalledWith("StrongPass123", 12);
+    expect(bcrypt.hash).toHaveBeenCalledWith("StrongPass123!", 12);
     expect(mockCreate).toHaveBeenCalledWith({
       data: {
         email: "amr@example.com",
         name: "Amr",
         passwordHash: "hashed-password",
+        verificationTokenHash: expect.any(String),
+        verificationExpiresAt: expect.any(Date),
       },
       select: { id: true, email: true, name: true },
     });
@@ -64,8 +78,9 @@ describe("signUpUser", () => {
       email: "test@x.com",
       name: null,
     } as never);
+    vi.mocked(getPostAuthRedirectForUser).mockResolvedValue("/onboarding");
 
-    await signUpUser({ email: "Test@X.com", password: "password12" });
+    await signUpUser({ email: "Test@X.com", password: "StrongPass123!" }, mockRequest);
 
     expect(mockCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -81,12 +96,12 @@ describe("signUpUser", () => {
       email: "member@example.com",
       name: null,
     } as never);
-    vi.mocked(prisma.workspaceMembership.findFirst).mockResolvedValue({ id: "mem-1" } as never);
+    vi.mocked(getPostAuthRedirectForUser).mockResolvedValue("/app");
 
     const result = await signUpUser({
       email: "member@example.com",
-      password: "password12",
-    });
+      password: "StrongPass123!",
+    }, mockRequest);
 
     expect(result.next).toBe("/app");
   });
@@ -95,15 +110,36 @@ describe("signUpUser", () => {
     mockFindUnique.mockResolvedValue({ id: "existing" } as never);
 
     await expect(
-      signUpUser({ email: "dup@example.com", password: "password12" }),
+      signUpUser({ email: "dup@example.com", password: "StrongPass123!" }, mockRequest),
     ).rejects.toThrow(DuplicateEmailError);
 
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it("rejects weak password", async () => {
+    // Too short
     await expect(
-      signUpUser({ email: "a@b.com", password: "short" }),
+      signUpUser({ email: "a@b.com", password: "Sh1!" }, mockRequest),
+    ).rejects.toThrow();
+
+    // Missing uppercase
+    await expect(
+      signUpUser({ email: "a@b.com", password: "strong123!" }, mockRequest),
+    ).rejects.toThrow();
+
+    // Missing lowercase
+    await expect(
+      signUpUser({ email: "a@b.com", password: "STRONG123!" }, mockRequest),
+    ).rejects.toThrow();
+
+    // Missing digit
+    await expect(
+      signUpUser({ email: "a@b.com", password: "StrongPass!" }, mockRequest),
+    ).rejects.toThrow();
+
+    // Missing special character
+    await expect(
+      signUpUser({ email: "a@b.com", password: "StrongPass123" }, mockRequest),
     ).rejects.toThrow();
   });
 
@@ -117,7 +153,7 @@ describe("signUpUser", () => {
     mockCreate.mockRejectedValue(err);
 
     await expect(
-      signUpUser({ email: "race@example.com", password: "password12" }),
+      signUpUser({ email: "race@example.com", password: "StrongPass123!" }, mockRequest),
     ).rejects.toThrow(DuplicateEmailError);
   });
 
@@ -128,9 +164,9 @@ describe("signUpUser", () => {
       email: "ok@example.com",
       name: null,
     } as never);
-    vi.mocked(prisma.workspaceMembership.findFirst).mockRejectedValue(new Error("db down"));
+    vi.mocked(getPostAuthRedirectForUser).mockRejectedValue(new Error("db down"));
 
-    const result = await signUpUser({ email: "ok@example.com", password: "password12" });
+    const result = await signUpUser({ email: "ok@example.com", password: "StrongPass123!" }, mockRequest);
 
     expect(result.next).toBe("/onboarding");
   });
