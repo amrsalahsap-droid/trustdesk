@@ -1,0 +1,74 @@
+{
+  "topicKey": "retention",
+  "topicName": "Data Retention",
+  "version": "1.0.0",
+  "lastUpdated": "2026-04-29",
+  "rules": [
+    {
+      "id": "retention_period_range",
+      "description": "Retention period numeric value must align with canonical",
+      "topicKey": "retention",
+      "subControlKey": "retention_policy",
+      "severity": "high",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "numeric_range",
+        "unit": "days",
+        "relativeTolerance": 0.1,
+        "extractNumbers": true
+      },
+      "messageTemplate": "Retention period mismatch: canonical specifies {{canonicalValue}} days but row indicates {{rowValue}} days",
+      "resolutionGuidance": "Use the exact retention period from the canonical policy, or request a policy update if changed."
+    },
+    {
+      "id": "retention_customer_data_required",
+      "description": "Customer data retention must be mentioned",
+      "topicKey": "retention",
+      "subControlKey": "retention_policy",
+      "severity": "medium",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "required_term_missing",
+        "requiredTerms": ["customer data", "user data", "personal data", "PII"],
+        "requireAll": false,
+        "minRequired": 1
+      },
+      "messageTemplate": "Customer data retention not mentioned: canonical covers customer data but row does not specify",
+      "resolutionGuidance": "Explicitly mention customer data in the retention policy description."
+    },
+    {
+      "id": "retention_deletion_process_exact",
+      "description": "Deletion process description should contain key elements from canonical",
+      "topicKey": "retention",
+      "subControlKey": "deletion_process",
+      "severity": "medium",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "contains",
+        "minCoverage": 0.4,
+        "wholeWordsOnly": true
+      },
+      "messageTemplate": "Deletion process description missing key elements from canonical policy",
+      "resolutionGuidance": "Include the key deletion workflow steps from the canonical policy."
+    },
+    {
+      "id": "retention_indefinite_forbidden",
+      "description": "Indefinite retention should not be claimed if canonical specifies limits",
+      "topicKey": "retention",
+      "subControlKey": "retention_policy",
+      "severity": "critical",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "forbidden_term",
+        "forbiddenTerms": ["indefinite", "unlimited", "forever", "no retention limit", "never deleted"],
+        "partialMatch": false
+      },
+      "messageTemplate": "Indefinite retention claimed: canonical specifies time-limited retention but row claims indefinite storage",
+      "resolutionGuidance": "Remove indefinite retention claims and align with canonical time-limited policy."
+    }
+  ]
+}

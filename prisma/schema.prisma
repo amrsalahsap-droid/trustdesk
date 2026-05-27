@@ -1,0 +1,1045 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                         String                     @id @default(cuid())
+  email                      String                     @unique
+  name                       String?
+  passwordHash               String
+  emailVerifiedAt            DateTime?
+  verificationTokenHash      String?                    @unique
+  verificationExpiresAt      DateTime?
+  passwordResetTokenHash     String?                    @unique
+  passwordResetExpiresAt     DateTime?
+  createdAt                  DateTime                   @default(now())
+  updatedAt                  DateTime                   @updatedAt
+  actuallyApprovedAnswers    AnswerLibraryItem[]        @relation("AnswerActualApprover")
+  approvedAnswers            AnswerLibraryItem[]        @relation("AnswerApprover")
+  answerLibraryItemOverrides AnswerLibraryItem[]        @relation("AnswerLibraryItemOverrideBy")
+  ownedAnswers               AnswerLibraryItem[]        @relation("AnswerOwner")
+  actuallyApprovedVersions   AnswerLibraryItemVersion[] @relation("AnswerVersionActualApprover")
+  answerVersions             AnswerLibraryItemVersion[]
+  resolvedContradictions     ContradictionResult[]      @relation("ContradictionResolvedBy")
+  exportJobs                 ExportJob[]                @relation("ExportJobExportedBy")
+  approvedKnowledgeTopics    KnowledgeTopic[]           @relation("TopicApprover")
+  ownedKnowledgeTopics       KnowledgeTopic[]           @relation("TopicOwner")
+  questionnaires             Questionnaire[]            @relation("QuestionnaireCreatedBy")
+  assignedQuestionnaireItems QuestionnaireItem[]        @relation("QuestionnaireItemAssignee")
+  questionnaireItemOverrides QuestionnaireItem[]        @relation("QuestionnaireItemOverrideBy")
+  questionnaireJobs          QuestionnaireJob[]         @relation("QuestionnaireJobUploadedBy")
+  sessions                   Session[]
+  uploadedSourceDocuments    SourceDocument[]           @relation("SourceDocumentUploadedBy")
+  triggeredParseJobs         SourceDocumentParseJob[]   @relation("ParseJobTriggeredBy")
+  approvedSubControls        SubControlGovernance[]     @relation("SubControlApprover")
+  ownedSubControls           SubControlGovernance[]     @relation("SubControlOwner")
+  sentInvitations            WorkspaceInvitation[]      @relation("InvitationSentBy")
+  invitedMemberships         WorkspaceMembership[]      @relation("MembershipInvitedBy")
+  lastActiveWorkspaceId      String?
+  memberships                WorkspaceMembership[]
+}
+
+model Workspace {
+  id                                           String                                       @id @default(cuid())
+  name                                         String
+  slug                                         String                                       @unique
+  status                                       WorkspaceStatus                              @default(ACTIVE)
+  createdAt                                    DateTime                                     @default(now())
+  updatedAt                                    DateTime                                     @updatedAt
+  website                                      String?
+  industry                                     String[]                                     @default([])
+  productType                                  String[]                                     @default([])
+  customerSegment                              String[]                                     @default([])
+  dataTypes                                    String[]
+  complianceTargets                            String[]
+  deepProfileJson                              Json?
+  documentBriefsJson                           Json?
+  /// * Versioned onboarding analysis / provenance snapshot (no raw crawl HTML).
+  onboardingIntelMetaJson                      Json?
+  defaultTone                                  String                                       @default("concise")
+  /// * When true, answer owner may run approve workflow actions on their own answers.
+  allowOwnerSelfApprove                        Boolean                                      @default(false)
+  /// * Default days until next governance review for newly approved answers (90, 180, or 365).
+  defaultAnswerReviewCadenceDays               Int                                          @default(90)
+  /// * When true, adding/removing linked evidence on an approved answer forces REVISION_REQUIRED.
+  flagAnswerOnEvidenceChange                   Boolean                                      @default(false)
+  /// *
+  ///    * When true, editing answer title/body while APPROVED_* does not force REVISION_REQUIRED.
+  ///    * Other material changes (scope, export-safe, evidence) still invalidate approval.
+  allowApprovedAnswerBodyEditWithoutReapproval Boolean                                      @default(false)
+  /// *
+  ///    * When true (default), reviewed questionnaire rows that still match a linked
+  ///    * library suggestion will not emit that text in XLSX/CSV if the answer is not
+  ///    * export-eligible (buyer-facing strict mode).
+  questionnaireExportStrictBuyerMode           Boolean                                      @default(true)
+  /// *
+  ///    * When false, "Approve for export" workflow immediately sets exportSafe=true
+  ///    * (legacy one-step). When true (default), approver must confirm export-safe separately.
+  requireApproverExportSafeConfirmation        Boolean                                      @default(true)
+  /// * Workspace timezone (e.g. "UTC", "America/New_York").
+  timezone                                     String                                       @default("UTC")
+  /// * Optional custom branding logo URL.
+  logoUrl                                      String?
+  /// /** Days until an invitation expires.
+  inviteExpirationDays                         Int                                          @default(7)
+  /// * List of allowed email domains for invitations (e.g. ["google.com"]).
+  allowedEmailDomains                          String[]                                     @default([])
+  /// * When true, only emails from allowed domains can be invited.
+  enforceDomainCheck                           Boolean                                      @default(false)
+  /// * Minutes of inactivity before a session is considered expired.
+  sessionTimeoutMinutes                        Int                                          @default(1440)
+  /// /** When true, evidence quotes are included in exports by default.
+  exportIncludeEvidence                        Boolean                                      @default(false)
+  /// * When true, source document names/provenance are included in exports by default.
+  exportIncludeProvenance                      Boolean                                      @default(true)
+  /// * Default file format for exports (xlsx, csv).
+  exportFormatDefault                          String                                       @default("xlsx")
+  /// * How to handle questionnaire rows that have no final answer (leave_blank, use_ai_draft).
+  exportUnresolvedBehavior                     String                                       @default("leave_blank")
+  /// * Default font family for export cells (e.g. "Calibri", "Arial").
+  exportFontFamily                             String                                       @default("Calibri")
+  /// * Default font size for export cells.
+  exportFontSize                               Int                                          @default(11)
+  /// * When true, headers in newly created export columns are bolded.
+  exportBoldHeaders                            Boolean                                      @default(true)
+  /// * When true, export cells have vertical: top alignment.
+  exportVerticalTop                            Boolean                                      @default(true)
+  /// * When true, export cells have text wrapping enabled.
+  exportWrapText                               Boolean                                      @default(true)
+  /// * Default output column name if none specified in questionnaire.
+  exportOutputColumnName                       String                                       @default("TrustDesk Answer")
+  /// * When true, automatically move notes/comments columns to the end of the sheet.
+  exportAutoMoveNotesToEnd                     Boolean                                      @default(true)
+  /// *
+  ///    * When BLOCK, unresolved medium-severity contradictions block questionnaire export.
+  ///    * High/critical always block when unresolved. WARN surfaces warnings only for medium.
+  questionnaireExportContradictionMediumPolicy QuestionnaireExportContradictionMediumPolicy @default(WARN)
+  /// *
+  ///    * Optional threshold (0-100) that overrides the policy when set. When the ratio of
+  ///    * reviewed rows to total rows falls below this percent, questionnaire export is
+  ///    * treated as BLOCK regardless of `questionnaireExportUnansweredPolicy`. NULL means
+  ///    * no minimum-coverage threshold is applied.
+  questionnaireExportMinReviewedPercent        Int?
+  /// * When true, this workspace is a pre-seeded demo environment for new users.
+  isDemo                                       Boolean                                      @default(false)
+  /// *
+  ///    * How the export surface treats questionnaire rows that have not been reviewed yet.
+  ///    * Defaults to BLOCK — unresolved rows show up as a blocker warning and prevent
+  ///    * the download. Set to WARN to allow downloads with a warning. Set to IGNORE
+  ///    * to suppress the category entirely.
+  questionnaireExportUnansweredPolicy          QuestionnaireExportUnansweredPolicy          @default(BLOCK)
+  answerEvidences                              AnswerEvidence[]
+  answerLibraryItems                           AnswerLibraryItem[]
+  answerVersions                               AnswerLibraryItemVersion[]
+  answerSeedingJobs                            AnswerSeedingJob[]
+  answerSeedingTopicRuns                       AnswerSeedingTopicRun[]
+  contradictionResults                         ContradictionResult[]
+  evidences                                    Evidence[]
+  exportJobs                                   ExportJob[]
+  gapFlags                                     GapFlag[]
+  knowledgeTopics                              KnowledgeTopic[]
+  profileFields                                WorkspaceProfileField[]
+  questionnaires                               Questionnaire[]
+  questionnaireItems                           QuestionnaireItem[]
+  questionnaireJobs                            QuestionnaireJob[]
+  sourceChunkTopics                            SourceChunkTopic[]
+  sourceDocuments                              SourceDocument[]
+  sourceDocumentChunks                         SourceDocumentChunk[]
+  sourceDocumentContents                       SourceDocumentContent[]
+  sourceDocumentParseJobs                      SourceDocumentParseJob[]
+  subControlGovernances                        SubControlGovernance[]
+  invitations                                  WorkspaceInvitation[]
+  memberships                                  WorkspaceMembership[]
+}
+
+model SourceDocument {
+  id                String                     @id @default(cuid())
+  workspaceId       String
+  uploadedById      String
+  fileName          String
+  originalName      String
+  mimeType          String
+  fileSizeBytes     Int
+  storageKey        String                     @unique
+  storageBucket     String
+  uploadStatus      SourceDocumentUploadStatus @default(PENDING)
+  groupId           String?
+  version           Int                        @default(1)
+  isLatest          Boolean                    @default(true)
+  versionLabel      String?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  answerSeedingJobs AnswerSeedingJob[]
+  uploadedBy        User                       @relation("SourceDocumentUploadedBy", fields: [uploadedById], references: [id])
+  workspace         Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  chunks            SourceDocumentChunk[]
+  content           SourceDocumentContent?
+  parseJobs         SourceDocumentParseJob[]
+
+  @@index([workspaceId])
+  @@index([uploadedById])
+  @@index([groupId])
+}
+
+model SourceDocumentChunk {
+  id                String             @id @default(cuid())
+  workspaceId       String
+  sourceDocumentId  String
+  chunkIndex        Int
+  content           String
+  heading           String?
+  metadataJson      Json?
+  embedding         Float[]
+  createdAt         DateTime           @default(now())
+  evidence          AnswerEvidence[]
+  sourceChunkTopics SourceChunkTopic[]
+  sourceDocument    SourceDocument     @relation(fields: [sourceDocumentId], references: [id], onDelete: Cascade)
+  workspace         Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([sourceDocumentId])
+  @@index([chunkIndex])
+}
+
+model SourceDocumentContent {
+  id               String         @id @default(cuid())
+  workspaceId      String
+  sourceDocumentId String         @unique
+  fullText         String
+  pageCount        Int?
+  pagesJson        Json?
+  metadataJson     Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  sourceDocument   SourceDocument @relation(fields: [sourceDocumentId], references: [id], onDelete: Cascade)
+  workspace        Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model SourceDocumentParseJob {
+  id               String         @id @default(cuid())
+  workspaceId      String
+  sourceDocumentId String
+  triggeredById    String
+  status           ParseJobStatus @default(QUEUED)
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  lastHeartbeatAt  DateTime?
+  retryCount       Int            @default(0)
+  errorMessage     String?
+  failureCode      String?
+  staleDetectedAt  DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  sourceDocument   SourceDocument @relation(fields: [sourceDocumentId], references: [id], onDelete: Cascade)
+  triggeredBy      User           @relation("ParseJobTriggeredBy", fields: [triggeredById], references: [id])
+  workspace        Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([status])
+}
+
+model KnowledgeTopic {
+  id                                 String                  @id @default(cuid())
+  workspaceId                        String?
+  key                                String
+  name                               String
+  description                        String?
+  embedding                          Float[]
+  status                             KnowledgeTopicStatus    @default(ACTIVE)
+  ownerId                            String?
+  approverId                         String?
+  isRecommended                      Boolean                 @default(false)
+  suggestionReason                   String?
+  /// * Override workspace default review cadence in days (90/180/365); null inherits.
+  reviewCadenceDays                  Int?
+  createdAt                          DateTime                @default(now())
+  updatedAt                          DateTime                @updatedAt
+  /// * When true, review may run an LLM semantic assist after deterministic rules find no hit.
+  contradictionSemanticAssistEnabled Boolean                 @default(false)
+  libraryItems                       AnswerLibraryItem[]
+  answerSeedingTopicRuns             AnswerSeedingTopicRun[]
+  contradictionResults               ContradictionResult[]
+  approver                           User?                   @relation("TopicApprover", fields: [approverId], references: [id])
+  owner                              User?                   @relation("TopicOwner", fields: [ownerId], references: [id])
+  workspace                          Workspace?              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  questionnaireItems                 QuestionnaireItem[]
+  sourceChunkTopics                  SourceChunkTopic[]
+  subControlGovernances              SubControlGovernance[]
+
+  @@unique([workspaceId, key])
+  @@index([workspaceId])
+  @@index([key])
+}
+
+model SubControlGovernance {
+  id            String         @id @default(cuid())
+  workspaceId   String
+  topicId       String
+  subControlKey String
+  ownerId       String?
+  approverId    String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  approver      User?          @relation("SubControlApprover", fields: [approverId], references: [id])
+  owner         User?          @relation("SubControlOwner", fields: [ownerId], references: [id])
+  topic         KnowledgeTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, topicId, subControlKey])
+  @@index([workspaceId])
+}
+
+model AnswerSeedingJob {
+  id                      String                  @id @default(cuid())
+  workspaceId             String
+  status                  AnswerSeedingJobStatus  @default(QUEUED)
+  triggerSourceDocumentId String?
+  triggerParseJobId       String?
+  attempt                 Int                     @default(0)
+  maxAttempts             Int                     @default(3)
+  lastError               String?
+  startedAt               DateTime?
+  finishedAt              DateTime?
+  lastHeartbeatAt         DateTime?
+  failureCode             String?
+  staleDetectedAt         DateTime?
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  sourceDocument          SourceDocument?         @relation(fields: [triggerSourceDocumentId], references: [id])
+  workspace               Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  topicRuns               AnswerSeedingTopicRun[]
+
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, status])
+}
+
+model AnswerSeedingTopicRun {
+  id                  String                      @id @default(cuid())
+  workspaceId         String
+  seedingJobId        String
+  topicId             String
+  status              AnswerSeedingTopicRunStatus @default(PENDING)
+  errorMessage        String?
+  answerLibraryItemId String?
+  attemptCount        Int                         @default(0)
+  createdAt           DateTime                    @default(now())
+  updatedAt           DateTime                    @updatedAt
+  seedingJob          AnswerSeedingJob            @relation(fields: [seedingJobId], references: [id], onDelete: Cascade)
+  topic               KnowledgeTopic              @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  workspace           Workspace                   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([seedingJobId, topicId])
+  @@index([workspaceId])
+  @@index([seedingJobId, status])
+}
+
+model AnswerLibraryItem {
+  id                     String                     @id @default(cuid())
+  workspaceId            String
+  topicId                String?
+  title                  String
+  answer                 String?
+  owner                  String?
+  ownerId                String?
+  approverId             String?
+  status                 AnswerStatus               @default(DRAFT)
+  confidenceScore        Float?
+  version                String                     @default("v1")
+  embedding              Float[]
+  lastVerified           DateTime?
+  createdAt              DateTime                   @default(now())
+  updatedAt              DateTime                   @updatedAt
+  generationScope        AnswerGenerationScope      @default(MANUAL)
+  evidenceFingerprint    String?
+  contentHash            String?
+  governanceStatus       AnswerGovernanceStatus     @default(DRAFT)
+  approvalScope          AnswerApprovalScope        @default(INTERNAL_ONLY)
+  approvedAt             DateTime?
+  approvedByUserId       String?
+  lastReviewedAt         DateTime?
+  nextReviewDueAt        DateTime?
+  expiresAt              DateTime?
+  /// * @deprecated Use overrideReasonCategory + overrideComment
+  overrideReason         String?
+  overrideReasonCategory OverrideReasonCategory?
+  overrideComment        String?
+  overrideAt             DateTime?
+  overrideByUserId       String?
+  overrideScope          OverrideScope?
+  exportSafe             Boolean                    @default(false)
+  evidenceRequired       Boolean                    @default(false)
+  versionNumber          Int                        @default(1)
+  supersedesAnswerId     String?
+  subControlKey          String?
+  subControlLabels       String[]                   @default([])
+  /// * Override topic/workspace default review cadence in days (90/180/365); null inherits.
+  reviewCadenceDays      Int?
+  currentVersion         Int                        @default(1)
+  evidence               AnswerEvidence[]
+  approvedByUser         User?                      @relation("AnswerActualApprover", fields: [approvedByUserId], references: [id])
+  approverUser           User?                      @relation("AnswerApprover", fields: [approverId], references: [id])
+  overrideByUser         User?                      @relation("AnswerLibraryItemOverrideBy", fields: [overrideByUserId], references: [id])
+  ownerUser              User?                      @relation("AnswerOwner", fields: [ownerId], references: [id])
+  supersedesAnswer       AnswerLibraryItem?         @relation("AnswerVersioning", fields: [supersedesAnswerId], references: [id])
+  supersededBy           AnswerLibraryItem[]        @relation("AnswerVersioning")
+  topic                  KnowledgeTopic?            @relation(fields: [topicId], references: [id])
+  workspace              Workspace                  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  versions               AnswerLibraryItemVersion[]
+  contradictionResults   ContradictionResult[]
+  questionnaireItems     QuestionnaireItem[]
+
+  @@index([workspaceId])
+  @@index([topicId])
+  @@index([workspaceId, topicId, generationScope])
+  @@index([workspaceId, topicId, subControlKey])
+  @@index([workspaceId, nextReviewDueAt])
+  @@index([workspaceId, governanceStatus])
+  @@index([workspaceId, overrideReasonCategory])
+}
+
+model QuestionnaireJob {
+  id                       String         @id @default(cuid())
+  workspaceId              String
+  status                   String         @default("uploaded")
+  originalName             String?
+  mimeType                 String?
+  detectedSheetName        String?
+  selectedSheetName        String?
+  fileBytes                Bytes?
+  previewJson              Json?
+  headerRowIndex           Int?
+  questionColIndex         Int?
+  answerColIndex           Int?
+  detectedHeaderRowIndex   Int?
+  detectedQuestionColIndex Int?
+  detectedAnswerColIndex   Int?
+  confidence               String?
+  suggestNewAnswer         Boolean?       @default(false)
+  questionnaireId          String?
+  uploadedById             String?
+  errorMessage             String?
+  createdAt                DateTime       @default(now())
+  updatedAt                DateTime       @updatedAt
+  questionnaire            Questionnaire? @relation(fields: [questionnaireId], references: [id])
+  uploadedBy               User?          @relation("QuestionnaireJobUploadedBy", fields: [uploadedById], references: [id])
+  workspace                Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([questionnaireId])
+  @@index([uploadedById])
+}
+
+model Questionnaire {
+  id                   String                @id @default(cuid())
+  workspaceId          String
+  title                String
+  sourceFileName       String?
+  suggestNewAnswer     Boolean               @default(false)
+  outputColumnName     String?
+  tone                 String                @default("concise")
+  createdById          String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  contradictionResults ContradictionResult[]
+  exportJobs           ExportJob[]
+  gapFlags             GapFlag[]
+  createdBy            User?                 @relation("QuestionnaireCreatedBy", fields: [createdById], references: [id])
+  workspace            Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  items                QuestionnaireItem[]
+  jobs                 QuestionnaireJob[]
+
+  @@index([workspaceId])
+  @@index([createdById])
+}
+
+model QuestionnaireItem {
+  id                          String                  @id @default(cuid())
+  workspaceId                 String
+  questionnaireId             String
+  sortOrder                   Int
+  question                    String
+  suggestedAnswer             String                  @default("")
+  finalAnswer                 String                  @default("")
+  reviewed                    Boolean                 @default(false)
+  reviewSummary               String?
+  topicKey                    String?
+  topicName                   String?
+  reviewStatus                String                  @default("ok")
+  type                        String                  @default("question_row")
+  conflictNote                String?
+  confidence                  String                  @default("medium")
+  rowNumber                   Int?
+  sourcesJson                 Json?
+  topicId                     String?
+  suggestedAnswerId           String?
+  suggestionStatus            String?                 @default("not_started")
+  unresolvedReason            String?
+  assigneeId                  String?
+  exportStatus                String?                 @default("pending")
+  candidatesJson              Json?
+  isAmbiguous                 Boolean                 @default(false)
+  ambiguityJson               Json?
+  provenanceJson              Json?
+  verificationStatus          VerificationStatus      @default(UNREVIEWED)
+  createdAt                   DateTime                @default(now())
+  overrideReasonCategory      OverrideReasonCategory?
+  overrideComment             String?
+  overrideAt                  DateTime?
+  overrideByUserId            String?
+  overrideScope               OverrideScope?
+  finalAnswerSelectedAt       DateTime?
+  finalAnswerSelectedByUserId String?
+  /// *
+  ///    * Records the reviewer's explicit choice of where `finalAnswer` came from. Null
+  ///    * means the reviewer has not yet picked; reviewing (reviewed=true) is blocked until
+  ///    * this is set. Enables "did the user accept AI or keep imported?" audit queries.
+  finalAnswerSelection        FinalAnswerSelection?
+  /// *
+  ///    * Manual answer preserved from the uploaded spreadsheet row. Set at import time
+  ///    * from `row.answer` and never overwritten afterward — it is the audit-grade record
+  ///    * of what the customer originally submitted. Null when the row had no source text
+  ///    * (e.g. empty cell, rows added post-import, or legacy rows with no recoverable
+  ///    * history — see `importedAnswerSource === "unknown"`).
+  importedAnswer              String?
+  importedAnswerSource        ImportedAnswerSource?
+  contradictionResult         ContradictionResult?
+  gapFlags                    GapFlag[]
+  assignee                    User?                   @relation("QuestionnaireItemAssignee", fields: [assigneeId], references: [id])
+  overrideByUser              User?                   @relation("QuestionnaireItemOverrideBy", fields: [overrideByUserId], references: [id])
+  questionnaire               Questionnaire           @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  suggestedAnswerRef          AnswerLibraryItem?      @relation(fields: [suggestedAnswerId], references: [id])
+  topic                       KnowledgeTopic?         @relation(fields: [topicId], references: [id])
+  workspace                   Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([questionnaireId])
+  @@index([workspaceId, overrideReasonCategory])
+}
+
+model Evidence {
+  id          String    @id @default(cuid())
+  workspaceId String
+  label       String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model ExportJob {
+  id                    String         @id @default(cuid())
+  workspaceId           String
+  format                String
+  fileName              String?
+  storageKey            String?
+  storageBucket         String?
+  status                String         @default("pending")
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  questionnaireId       String?
+  exportedById          String?
+  exportedAt            DateTime?
+  rowCount              Int?
+  exportSafeCoverage    Float?
+  unresolvedWarnings    Json?
+  downloadUrl           String?
+  fileSize              Int?
+  processingStartedAt   DateTime?
+  processingCompletedAt DateTime?
+  errorMessage          String?
+  metadata              Json?
+  exportedBy            User?          @relation("ExportJobExportedBy", fields: [exportedById], references: [id])
+  questionnaire         Questionnaire? @relation(fields: [questionnaireId], references: [id])
+  workspace             Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([questionnaireId])
+  @@index([exportedById])
+  @@index([status])
+  @@index([exportedAt])
+}
+
+model AnswerEvidence {
+  id          String              @id @default(cuid())
+  workspaceId String
+  answerId    String
+  chunkId     String
+  quote       String?
+  startIndex  Int?
+  endIndex    Int?
+  createdAt   DateTime            @default(now())
+  answer      AnswerLibraryItem   @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  chunk       SourceDocumentChunk @relation(fields: [chunkId], references: [id], onDelete: Cascade)
+  workspace   Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([answerId, chunkId])
+  @@index([workspaceId])
+  @@index([answerId])
+  @@index([chunkId])
+}
+
+model AnswerLibraryItemVersion {
+  id                    String                  @id @default(cuid())
+  workspaceId           String
+  answerId              String
+  versionNumber         Int
+  /// * Snapshot of title at this version (post-change).
+  title                 String?
+  answerText            String?
+  status                AnswerStatus
+  changedById           String?
+  changeReason          String?
+  createdAt             DateTime                @default(now())
+  ownerId               String?
+  approverId            String?
+  /// * Sorted linked evidence: [{ chunkId, quote? }, ...]
+  evidenceSnapshotJson  Json?
+  /// * Structured [{ field, before, after }] for audit UI
+  changeDiffJson        Json?
+  resetApprovalRequired Boolean                 @default(false)
+  /// * CONTENT | GOVERNANCE | OWNERSHIP | EVIDENCE | SYSTEM
+  changeKind            String?
+  governanceStatus      AnswerGovernanceStatus?
+  approvalScope         AnswerApprovalScope?
+  approvedAt            DateTime?
+  approvedByUserId      String?
+  lastReviewedAt        DateTime?
+  nextReviewDueAt       DateTime?
+  expiresAt             DateTime?
+  exportSafe            Boolean                 @default(false)
+  evidenceRequired      Boolean                 @default(false)
+  answer                AnswerLibraryItem       @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  approvedByUser        User?                   @relation("AnswerVersionActualApprover", fields: [approvedByUserId], references: [id])
+  changedBy             User?                   @relation(fields: [changedById], references: [id])
+  workspace             Workspace               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([answerId, versionNumber])
+  @@index([workspaceId])
+  @@index([answerId])
+  @@index([versionNumber])
+}
+
+model AuditEvent {
+  id           String   @id @default(cuid())
+  /// *
+  ///    * Tenant scope when known; may reference a non-existent id for denied cross-tenant probes (no FK).
+  workspaceId  String?
+  actorUserId  String?
+  eventType    String
+  objectType   String
+  objectId     String?
+  metadataJson Json?
+  userAgent    String?
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+
+  @@index([workspaceId])
+  @@index([actorUserId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model WorkspaceMembership {
+  id          String                    @id @default(cuid())
+  userId      String
+  workspaceId String
+  role        WorkspaceRole
+  status      WorkspaceMembershipStatus @default(ACTIVE)
+  invitedById String?
+  joinedAt    DateTime?
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  invitedBy   User?                     @relation("MembershipInvitedBy", fields: [invitedById], references: [id])
+  user        User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, workspaceId])
+  @@index([userId])
+  @@index([workspaceId])
+  @@index([invitedById])
+}
+
+model WorkspaceInvitation {
+  id          String                    @id @default(cuid())
+  workspaceId String
+  email       String
+  role        WorkspaceRole
+  tokenHash   String                    @unique
+  invitedById String
+  status      WorkspaceInvitationStatus @default(PENDING)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  revokedAt   DateTime?
+  mailSent    Boolean                   @default(false)
+  mailError   String?
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+  invitedBy   User                      @relation("InvitationSentBy", fields: [invitedById], references: [id], onDelete: Cascade)
+  workspace   Workspace                 @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([email])
+  @@index([invitedById])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  sessionToken String   @unique
+  expires      DateTime
+  userAgent    String?
+  ipAddress    String?
+  lastUsedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model EmbeddingCache {
+  id        String   @id @default(cuid())
+  hash      String
+  text      String?
+  provider  String
+  model     String
+  version   String   @default("1")
+  vector    Float[]
+  createdAt DateTime @default(now())
+
+  @@unique([hash, provider, model, version])
+  @@index([hash])
+}
+
+model SourceChunkTopic {
+  id          String              @id @default(cuid())
+  workspaceId String
+  chunkId     String
+  topicId     String
+  score       Float
+  createdAt   DateTime            @default(now())
+  chunk       SourceDocumentChunk @relation(fields: [chunkId], references: [id], onDelete: Cascade)
+  topic       KnowledgeTopic      @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  workspace   Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([chunkId, topicId])
+  @@index([workspaceId])
+  @@index([chunkId])
+  @@index([topicId])
+}
+
+model GapFlag {
+  id                  String            @id @default(cuid())
+  workspaceId         String
+  questionnaireId     String
+  questionnaireItemId String
+  gapType             String
+  explanation         String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  questionnaire       Questionnaire     @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  questionnaireItem   QuestionnaireItem @relation(fields: [questionnaireItemId], references: [id], onDelete: Cascade)
+  workspace           Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([questionnaireId])
+  @@index([questionnaireItemId])
+  @@index([gapType])
+}
+
+model AiGenerationCache {
+  id           String   @id @default(cuid())
+  hash         String   @unique
+  taskType     String
+  responseText String?
+  responseJson Json?
+  usage        Json?
+  isMock       Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([hash])
+}
+
+/// *
+///  * Structured storage for canonical answer contradiction detection results.
+///  * Distinct from evidence-level conflicts (stored in QuestionnaireItem.conflictNote).
+///  * Enables re-runs, audit trails, and canonical version tracking.
+model ContradictionResult {
+  id                        String                        @id @default(cuid())
+  workspaceId               String
+  questionnaireId           String
+  questionnaireItemId       String                        @unique
+  contradictionFound        Boolean
+  contradictionType         String?
+  severity                  String?
+  message                   String?
+  reason                    String?
+  rowAnswerExcerpt          String?
+  canonicalAnswerId         String
+  canonicalAnswerExcerpt    String?
+  canonicalVersionNumber    Int                           @default(1)
+  canonicalApprovedAt       DateTime?
+  canonicalGovernanceStatus String?
+  topicId                   String?
+  topicKey                  String?
+  subControlKey             String?
+  detectedAt                DateTime                      @default(now())
+  detectorVersion           String                        @default("1.0.0")
+  ruleId                    String?
+  rulePackVersion           String?
+  /// * Structured output from semantic contradiction judge when invoked.
+  semanticJudgeJson         Json?
+  resolutionStatus          ContradictionResolutionStatus @default(PENDING)
+  resolvedAt                DateTime?
+  resolvedByUserId          String?
+  resolutionNote            String?
+  resolutionAction          String?
+  previousResultId          String?
+  isStale                   Boolean                       @default(false)
+  canonicalAnswer           AnswerLibraryItem             @relation(fields: [canonicalAnswerId], references: [id], onDelete: Cascade)
+  questionnaire             Questionnaire                 @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  questionnaireItem         QuestionnaireItem             @relation(fields: [questionnaireItemId], references: [id], onDelete: Cascade)
+  resolvedByUser            User?                         @relation("ContradictionResolvedBy", fields: [resolvedByUserId], references: [id])
+  topic                     KnowledgeTopic?               @relation(fields: [topicId], references: [id])
+  workspace                 Workspace                     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([questionnaireId])
+  @@index([questionnaireItemId])
+  @@index([canonicalAnswerId])
+  @@index([workspaceId, resolutionStatus])
+  @@index([workspaceId, detectedAt])
+  @@index([workspaceId, topicId])
+  @@index([isStale])
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  OPERATOR
+  ANSWER_OWNER
+  APPROVER
+  CONTRIBUTOR
+  AUDITOR
+  EDITOR
+  VIEWER
+}
+
+enum WorkspaceMembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  REMOVED
+  DISABLED
+}
+
+enum WorkspaceStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+/// * Whether unresolved medium-severity questionnaire contradictions block export.
+enum QuestionnaireExportContradictionMediumPolicy {
+  WARN
+  BLOCK
+}
+
+/// *
+///  * How questionnaire export should treat rows that have not been reviewed yet.
+///  * - IGNORE: completeness is never surfaced as a blocker.
+///  * - WARN: unresolved rows surface as a warning category with row-level detail.
+///  * - BLOCK: any unresolved row blocks the export download endpoint.
+enum QuestionnaireExportUnansweredPolicy {
+  IGNORE
+  WARN
+  BLOCK
+}
+
+enum SourceDocumentUploadStatus {
+  PENDING
+  UPLOADED
+  FAILED
+  DELETED
+}
+
+enum ParseJobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum AnswerSeedingJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+
+enum AnswerSeedingTopicRunStatus {
+  PENDING
+  SKIPPED_NO_EVIDENCE
+  SKIPPED_EXISTS
+  REJECTED_LOW_QUALITY
+  SUCCEEDED
+  FAILED
+}
+
+enum KnowledgeTopicStatus {
+  ACTIVE
+  DRAFT
+  SUGGESTED
+  ARCHIVED
+}
+
+enum AnswerStatus {
+  DRAFT
+  APPROVED
+  ARCHIVED
+}
+
+enum AnswerGovernanceStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED_INTERNAL
+  APPROVED_FOR_EXPORT
+  REVISION_REQUIRED
+  EXPIRED
+  REJECTED
+  ARCHIVED
+}
+
+enum AnswerApprovalScope {
+  INTERNAL_ONLY
+  EXPORT_ALLOWED
+}
+
+enum AnswerGenerationScope {
+  MANUAL
+  SEEDED
+}
+
+enum OverrideReasonCategory {
+  BUYER_REQUESTED_DETAIL
+  LEGAL_REQUIRED_CHANGE
+  PRODUCT_LIMITATION_DISCLOSURE
+  TEMPORARY_EXCEPTION
+  WORDING_CLARIFICATION
+  OTHER_WITH_COMMENT
+}
+
+/// * Row-level deviation vs intent to refresh canonical library content.
+enum OverrideScope {
+  QUESTIONNAIRE_ONLY
+  REQUEST_CANONICAL_UPDATE
+}
+
+enum VerificationStatus {
+  DRAFTED
+  SUGGESTED
+  NEEDS_REVIEW
+  ACCEPTED
+  AUTO_ACCEPTED
+  AMBIGUOUS_MATCH
+  REJECTED
+  UNRESOLVED
+  UNREVIEWED
+  EDITED
+  MANUAL_OVERRIDE
+}
+
+/// *
+///  * How `QuestionnaireItem.importedAnswer` was populated. Enables audit queries
+///  * distinguishing durable raw imports from best-effort legacy backfills.
+enum ImportedAnswerSource {
+  /// * Captured at import time directly from the uploaded spreadsheet row.
+  raw_import
+  /// * Backfilled from `finalAnswer` for legacy rows that were never edited/reviewed.
+  final_answer_legacy
+  /// * Backfilled from `suggestedAnswer` for legacy rows where no AI match was applied.
+  suggested_answer_legacy
+  /// * Backfill could not determine the source with confidence.
+  unknown
+}
+
+/// *
+///  * Reviewer's explicit choice of which answer source became `finalAnswer`. Null
+///  * means the row has not yet been decided and cannot be marked reviewed.
+enum FinalAnswerSelection {
+  imported
+  suggested
+  edited
+  canonical_aligned
+}
+
+enum WorkspaceInvitationStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+/// * Resolution states for a detected contradiction.
+enum ContradictionResolutionStatus {
+  PENDING
+  ACKNOWLEDGED
+  RESOLVED_ROW
+  RESOLVED_CANONICAL
+  FALSE_POSITIVE
+  STALE
+}
+
+/// * Status of an AI-generated profile field suggestion.
+enum ProfileFieldStatus {
+  SUGGESTED
+  NEEDS_REVIEW
+  CONFIRMED
+  EDITED
+  REJECTED
+  UNKNOWN
+}
+
+/// * Source type for how a profile field value was determined.
+enum ProfileFieldSourceType {
+  OBSERVED
+  DERIVED
+  HYPOTHESIZED
+  CONFLICTED
+  UNKNOWN
+  MANUAL
+}
+
+/// * Field-level AI suggestions and confirmed values for workspace Trust Profile.
+model WorkspaceProfileField {
+  id               String               @id @default(cuid())
+  workspaceId      String
+  fieldKey         String
+  suggestedValue   Json?
+  confirmedValue   Json?
+  confidence       Float                @default(0)
+  confidenceBand   String? // "high" | "medium" | "low" | "none"
+  sourceType       ProfileFieldSourceType @default(UNKNOWN)
+  status           ProfileFieldStatus   @default(SUGGESTED)
+  citations        Json? // SignalCitation[]
+  conflictInfo     Json? // SignalConflict info + rival candidate
+  candidates       Json? // SignalCandidate[] for enum fields
+  confirmedAt      DateTime?
+  rejectedAt       DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, fieldKey])
+  @@index([workspaceId])
+  @@index([workspaceId, status])
+}

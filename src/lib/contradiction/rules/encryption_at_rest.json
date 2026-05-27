@@ -1,0 +1,81 @@
+{
+  "topicKey": "encryption_at_rest",
+  "topicName": "Encryption at Rest",
+  "version": "1.0.0",
+  "lastUpdated": "2026-04-29",
+  "rules": [
+    {
+      "id": "encryption_at_rest_scope_polarity",
+      "description": "Whether data is encrypted at rest (yes/no) must align between canonical and row",
+      "topicKey": "encryption_at_rest",
+      "subControlKey": "scope",
+      "severity": "critical",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "boolean_polarity",
+        "strictPolarity": true,
+        "positiveIndicators": ["encryption at rest", "encrypted at rest", "are encrypted", "we encrypt all", "aes-", "full disk encryption", "all volumes are encrypted"],
+        "negativeIndicators": ["not encrypted", "no encryption", "plaintext", "unencrypted at rest", "no at-rest encryption"]
+      },
+      "messageTemplate": "At-rest encryption stance contradicts the approved canonical answer",
+      "resolutionGuidance": "Align encryption-at-rest claims with the canonical data-protection statement."
+    },
+    {
+      "id": "encryption_at_rest_scope_coverage",
+      "description": "Row should reflect a similar share of scope language from the canonical encryption scope",
+      "topicKey": "encryption_at_rest",
+      "subControlKey": "scope",
+      "severity": "medium",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "contains",
+        "minCoverage": 0.4,
+        "wholeWordsOnly": true
+      },
+      "messageTemplate": "Encryption scope answer omits major themes present in the canonical scope description",
+      "resolutionGuidance": "Include the same data categories and storage locations described in the canonical answer."
+    },
+    {
+      "id": "encryption_at_rest_algorithm_exact",
+      "description": "Stated at-rest algorithm family must match between canonical and row when both specify an algorithm",
+      "topicKey": "encryption_at_rest",
+      "subControlKey": "algorithms",
+      "severity": "high",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "enum_mismatch",
+        "enumValues": ["AES-256", "AES-128", "aes256", "ChaCha20", "RSA-2048", "RSA-4096"],
+        "strictMatch": true,
+        "equivalencies": {
+          "AES256": "AES-256",
+          "AES 256": "AES-256",
+          "256-bit AES": "AES-256",
+          "aes256": "AES-256"
+        }
+      },
+      "messageTemplate": "Encryption algorithm in the row does not match the canonical specification",
+      "resolutionGuidance": "Use the same algorithm and key-size language as the approved canonical answer."
+    },
+    {
+      "id": "encryption_at_rest_kms_required",
+      "description": "When canonical specifies KMS/HSM or envelope encryption, the row should mention key management",
+      "topicKey": "encryption_at_rest",
+      "subControlKey": "algorithms",
+      "severity": "high",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "required_term_missing",
+        "requiredTerms": ["KMS", "HSM", "key management", "envelope encryption"],
+        "requireAll": false,
+        "minRequired": 1,
+        "canonicalContainsAny": ["KMS", "HSM", "key management", "envelope encryption", "CMK"]
+      },
+      "messageTemplate": "Canonical describes managed keys but the row does not mention key management",
+      "resolutionGuidance": "Describe KMS/HSM or envelope encryption consistently with the canonical answer."
+    }
+  ]
+}

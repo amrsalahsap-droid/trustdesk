@@ -1,0 +1,26 @@
+{
+  "id": "fintech_synthetic",
+  "workspace": {
+    "name": "PayCo",
+    "industry": "fintech",
+    "productType": "saas",
+    "customerSegment": "b2b",
+    "dataTypes": ["PII"],
+    "complianceTargets": ["SOC2"]
+  },
+  "deepProfile": {
+    "industry": { "value": "fintech", "category": "OBSERVED", "confidence": 0.9 },
+    "productType": { "value": "saas", "category": "DERIVED", "confidence": 0.75 },
+    "customerSegment": { "value": "b2b", "category": "DERIVED", "confidence": 0.7 },
+    "dataTypes": { "value": ["PII"], "category": "OBSERVED", "confidence": 0.8 },
+    "complianceSignals": { "value": ["SOC2"], "category": "DERIVED", "confidence": 0.65 },
+    "tailoringConfidence": 0.82,
+    "suggestedDocuments": [],
+    "pagesScanned": ["https://example.com/security"]
+  },
+  "expect": {
+    "industryEffective": "fintech",
+    "documentIdsMustInclude": ["infosec_policy", "privacy_policy", "access_control", "bc_dr_plan", "software_dev_lifecycle"],
+    "topicPackIdsMustInclude": ["fintech_core", "privacy_deep_dive", "saas_enterprise"]
+  }
+}

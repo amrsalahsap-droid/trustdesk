@@ -1,0 +1,25 @@
+{
+  "id": "health_synthetic",
+  "workspace": {
+    "name": "MedApp",
+    "industry": "healthtech",
+    "productType": "saas",
+    "customerSegment": "b2b",
+    "dataTypes": ["PHI"],
+    "complianceTargets": []
+  },
+  "deepProfile": {
+    "industry": { "value": "healthtech", "category": "OBSERVED", "confidence": 0.88 },
+    "productType": { "value": "saas", "category": "DERIVED", "confidence": 0.7 },
+    "customerSegment": { "value": "b2b", "category": "DERIVED", "confidence": 0.65 },
+    "dataTypes": { "value": ["PHI"], "category": "OBSERVED", "confidence": 0.85 },
+    "tailoringConfidence": 0.8,
+    "suggestedDocuments": [],
+    "pagesScanned": ["https://med.example/privacy"]
+  },
+  "expect": {
+    "industryEffective": "healthtech",
+    "documentIdsMustInclude": ["infosec_policy", "privacy_policy", "access_control", "bc_dr_plan"],
+    "topicPackIdsMustInclude": ["healthtech_core", "privacy_deep_dive", "saas_enterprise"]
+  }
+}

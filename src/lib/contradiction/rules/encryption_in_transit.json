@@ -1,0 +1,96 @@
+{
+  "topicKey": "encryption_in_transit",
+  "topicName": "Encryption in Transit",
+  "version": "1.0.0",
+  "lastUpdated": "2026-04-29",
+  "rules": [
+    {
+      "id": "encryption_in_transit_tls_required_polarity",
+      "description": "TLS/HTTPS required vs optional or cleartext allowed must align between canonical and row",
+      "topicKey": "encryption_in_transit",
+      "subControlKey": "tls_policy",
+      "severity": "critical",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "boolean_polarity",
+        "strictPolarity": true,
+        "positiveIndicators": ["tls", "https required", "encrypted in transit", "mandatory tls", "all traffic encrypted"],
+        "negativeIndicators": ["http allowed", "http is allowed", "allows http", "optional tls", "unencrypted", "plaintext", "no tls", "tls not required"]
+      },
+      "messageTemplate": "TLS or HTTPS requirement contradicts the approved canonical answer",
+      "resolutionGuidance": "Align transport encryption requirements with the canonical TLS policy."
+    },
+    {
+      "id": "encryption_in_transit_tls_version_enum",
+      "description": "Minimum TLS version stated in the row must match the floor in the canonical answer",
+      "topicKey": "encryption_in_transit",
+      "subControlKey": "tls_policy",
+      "severity": "high",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "enum_mismatch",
+        "enumValues": ["tls 1.3", "tls 1.2", "tls 1.1", "tls 1.0"],
+        "strictMatch": true,
+        "equivalencies": {
+          "1.3": "tls 1.3",
+          "1.2": "tls 1.2"
+        }
+      },
+      "messageTemplate": "Minimum TLS version in the row does not match the canonical TLS floor",
+      "resolutionGuidance": "State the same minimum TLS version (e.g. 1.2 vs 1.3) as the canonical policy."
+    },
+    {
+      "id": "encryption_in_transit_tls_weak_forbidden",
+      "description": "Row must not advertise deprecated TLS/SSL versions when describing customer-facing transport",
+      "topicKey": "encryption_in_transit",
+      "subControlKey": "tls_policy",
+      "severity": "high",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "forbidden_term",
+        "forbiddenTerms": ["SSL 3.0", "TLS 1.0", "TLS 1.1", "sslv3"],
+        "partialMatch": false
+      },
+      "messageTemplate": "Row references weak or deprecated TLS/SSL versions",
+      "resolutionGuidance": "Remove weak protocol language and align with modern TLS baselines in the canonical answer."
+    },
+    {
+      "id": "encryption_in_transit_inter_service_polarity",
+      "description": "Internal or east-west encryption stance (mTLS/mesh vs cleartext internal) must align",
+      "topicKey": "encryption_in_transit",
+      "subControlKey": "inter_service",
+      "severity": "high",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "boolean_polarity",
+        "strictPolarity": true,
+        "positiveIndicators": ["mutual tls", "mtls", "m tls", "service mesh", "internal tls", "encrypted east-west", "ipsec"],
+        "negativeIndicators": ["plaintext internally", "http inside vpc", "plain http", "http is acceptable", "acceptable inside the vpc", "no internal encryption", "trust the network"]
+      },
+      "messageTemplate": "Inter-service encryption assertion contradicts the approved canonical answer",
+      "resolutionGuidance": "Match mTLS, mesh, or internal TLS claims to the canonical inter-service policy."
+    },
+    {
+      "id": "encryption_in_transit_inter_service_mtls_required",
+      "description": "When canonical requires mTLS or mesh for internal traffic, the row should mention it",
+      "topicKey": "encryption_in_transit",
+      "subControlKey": "inter_service",
+      "severity": "medium",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "required_term_missing",
+        "requiredTerms": ["mTLS", "mutual TLS", "service mesh", "internal TLS", "east-west encryption"],
+        "requireAll": false,
+        "minRequired": 1,
+        "canonicalContainsAny": ["mTLS", "mutual TLS", "service mesh", "internal TLS", "east-west", "mesh"]
+      },
+      "messageTemplate": "Canonical requires internal transport protection but the row does not mention mTLS/mesh or equivalent",
+      "resolutionGuidance": "Describe internal encryption the same way as the canonical answer (mTLS, mesh, etc.)."
+    }
+  ]
+}

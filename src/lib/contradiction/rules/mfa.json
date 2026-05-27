@@ -1,0 +1,97 @@
+{
+  "topicKey": "mfa",
+  "topicName": "Multi-Factor Authentication",
+  "version": "1.0.0",
+  "lastUpdated": "2026-04-29",
+  "rules": [
+    {
+      "id": "mfa_admin_polarity",
+      "description": "Administrator MFA required vs optional stance must align between canonical and row",
+      "topicKey": "mfa",
+      "subControlKey": "admin_mfa",
+      "severity": "critical",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "boolean_polarity",
+        "strictPolarity": true,
+        "positiveIndicators": ["yes", "required", "mandatory", "all admins", "enforced", "must use"],
+        "negativeIndicators": ["no", "not required", "optional", "not enforced", "n/a", "not applicable"]
+      },
+      "messageTemplate": "Administrator MFA requirement contradicts the approved canonical answer",
+      "resolutionGuidance": "Align admin MFA enforcement with the canonical policy or update the canonical answer."
+    },
+    {
+      "id": "mfa_user_polarity",
+      "description": "End-user MFA enabled vs not enabled / required vs optional must align between canonical and row",
+      "topicKey": "mfa",
+      "subControlKey": "user_mfa",
+      "severity": "high",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "boolean_polarity",
+        "strictPolarity": true,
+        "positiveIndicators": ["yes", "required", "all users", "mandatory", "enforced", "enabled for all"],
+        "negativeIndicators": ["no", "optional", "not required", "recommended only", "not enabled", "disabled"]
+      },
+      "messageTemplate": "End-user MFA assertion contradicts the approved canonical answer",
+      "resolutionGuidance": "Match end-user MFA posture to the canonical policy."
+    },
+    {
+      "id": "mfa_methods_enum",
+      "description": "When both answers name a primary MFA method, the method family must match (e.g. WebAuthn vs SMS-only)",
+      "topicKey": "mfa",
+      "subControlKey": "mfa_methods",
+      "severity": "high",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "enum_mismatch",
+        "enumValues": ["webauthn", "fido2", "totp", "authenticator app", "hardware key", "sms", "passkeys"],
+        "strictMatch": true,
+        "equivalencies": {
+          "passkeys": "webauthn",
+          "security key": "hardware key",
+          "authenticator": "authenticator app"
+        }
+      },
+      "messageTemplate": "Supported MFA method in the row does not match the method emphasized in the canonical answer",
+      "resolutionGuidance": "List the same primary MFA methods as the canonical policy (e.g. phishing-resistant vs SMS)."
+    },
+    {
+      "id": "mfa_methods_required",
+      "description": "When canonical enumerates MFA methods, the row should name at least one supported method",
+      "topicKey": "mfa",
+      "subControlKey": "mfa_methods",
+      "severity": "medium",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "required_term_missing",
+        "requiredTerms": ["TOTP", "SMS", "WebAuthn", "FIDO2", "authenticator", "hardware key", "passkey"],
+        "requireAll": false,
+        "minRequired": 1,
+        "canonicalContainsAny": ["TOTP", "SMS", "WebAuthn", "FIDO2", "authenticator", "hardware key", "passkey", "security key"]
+      },
+      "messageTemplate": "Canonical lists specific MFA methods but the row does not mention any supported method",
+      "resolutionGuidance": "Mirror the method list from the canonical answer or update canonical if offerings changed."
+    },
+    {
+      "id": "mfa_phishing_resistant",
+      "description": "Row must not claim weak MFA-only patterns when canonical emphasizes strong factors (row-only heuristic)",
+      "topicKey": "mfa",
+      "subControlKey": "admin_mfa",
+      "severity": "high",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "forbidden_term",
+        "forbiddenTerms": ["SMS only", "email OTP", "voice call only"],
+        "partialMatch": false
+      },
+      "messageTemplate": "Row cites weak MFA patterns that conflict with phishing-resistant expectations in admin MFA policy",
+      "resolutionGuidance": "Prefer WebAuthn, hardware keys, or other phishing-resistant factors per canonical guidance."
+    }
+  ]
+}

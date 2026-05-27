@@ -1,0 +1,163 @@
+{
+  "topicKey": "access_control",
+  "topicName": "Access Control",
+  "version": "1.0.0",
+  "lastUpdated": "2026-04-29",
+  "rules": [
+    {
+      "id": "access_control_rbac_polarity",
+      "description": "RBAC and least-privilege yes/no must align between canonical truth and questionnaire row",
+      "topicKey": "access_control",
+      "subControlKey": "rbac",
+      "severity": "high",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "boolean_polarity",
+        "strictPolarity": true,
+        "positiveIndicators": ["yes", "implemented", "in place", "we use", "enabled", "enforced"],
+        "negativeIndicators": ["no", "not implemented", "we do not", "disabled", "n/a", "not applicable"]
+      },
+      "messageTemplate": "RBAC or least-privilege assertion contradicts the approved canonical answer",
+      "resolutionGuidance": "Align the row with the canonical RBAC policy or update the canonical answer if practice has changed."
+    },
+    {
+      "id": "access_control_access_request_polarity",
+      "description": "Access request process (formal vs informal) must align between canonical and row",
+      "topicKey": "access_control",
+      "subControlKey": "access_request",
+      "severity": "medium",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "boolean_polarity",
+        "strictPolarity": true,
+        "positiveIndicators": ["ticket", "workflow", "portal", "iam", "request system", "documented process"],
+        "negativeIndicators": ["no formal", "informal", "email only", "ad hoc", "verbal only", "no process"]
+      },
+      "messageTemplate": "Access request process description contradicts the approved canonical answer",
+      "resolutionGuidance": "Describe the same request channel and workflow as in the canonical policy."
+    },
+    {
+      "id": "access_control_access_approval_polarity",
+      "description": "Access approval and segregation-of-duties stance must align between canonical and row",
+      "topicKey": "access_control",
+      "subControlKey": "access_approval",
+      "severity": "high",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "boolean_polarity",
+        "strictPolarity": true,
+        "positiveIndicators": ["manager approval", "workflow", "logged", "segregation", "second approver", "sox", "reviewed"],
+        "negativeIndicators": ["self-approval", "no approval", "informal", "verbal only", "not logged", "anyone can approve"]
+      },
+      "messageTemplate": "Access approval workflow contradicts the approved canonical answer",
+      "resolutionGuidance": "Match manager approval, logging, and segregation-of-duties claims to the canonical workflow."
+    },
+    {
+      "id": "access_control_access_approval_forbidden",
+      "description": "Row must not claim informal approval patterns when canonical defines a controlled workflow",
+      "topicKey": "access_control",
+      "subControlKey": "access_approval",
+      "severity": "high",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "forbidden_term",
+        "forbiddenTerms": ["verbal approval only", "self-approval", "no manager review", "skip approval"],
+        "partialMatch": false
+      },
+      "messageTemplate": "Row describes informal access approval that conflicts with the controlled workflow in the canonical answer",
+      "resolutionGuidance": "Remove informal approval language and align with the canonical approval path."
+    },
+    {
+      "id": "access_control_review_frequency",
+      "description": "Access review cadence in the row must match the cadence stated in the canonical answer",
+      "topicKey": "access_control",
+      "subControlKey": "access_review",
+      "severity": "high",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "enum_mismatch",
+        "enumValues": ["quarterly", "semi-annually", "annually", "monthly", "continuous"],
+        "strictMatch": true,
+        "equivalencies": {
+          "every 3 months": "quarterly",
+          "every 6 months": "semi-annually",
+          "every year": "annually"
+        }
+      },
+      "messageTemplate": "Access review frequency in the row does not match the canonical requirement",
+      "resolutionGuidance": "Use the same review cadence as the approved canonical answer."
+    },
+    {
+      "id": "access_control_offboarding_forbidden",
+      "description": "Offboarding row must not contradict canonical automated or timely deprovisioning",
+      "topicKey": "access_control",
+      "subControlKey": "offboarding",
+      "severity": "medium",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "forbidden_term",
+        "forbiddenTerms": ["manual process only", "no automated", "informal offboarding", "weeks later"],
+        "partialMatch": false
+      },
+      "messageTemplate": "Offboarding description conflicts with the approved deprovisioning approach",
+      "resolutionGuidance": "Align with automated or SLA-driven deprovisioning described in the canonical answer."
+    },
+    {
+      "id": "access_control_privileged_polarity",
+      "description": "Privileged access enforcement yes/no must align between canonical and row",
+      "topicKey": "access_control",
+      "subControlKey": "privileged_access",
+      "severity": "high",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "boolean_polarity",
+        "strictPolarity": true,
+        "positiveIndicators": ["yes", "enforced", "jit", "just-in-time", "pam", "privileged access management"],
+        "negativeIndicators": ["no", "not enforced", "shared root", "always-on admin", "n/a"]
+      },
+      "messageTemplate": "Privileged access enforcement contradicts the approved canonical answer",
+      "resolutionGuidance": "Align privileged access controls (JIT, PAM, break-glass) with the canonical policy."
+    },
+    {
+      "id": "access_control_privileged_contains",
+      "description": "Privileged access row should reflect key concepts present in the canonical policy text",
+      "topicKey": "access_control",
+      "subControlKey": "privileged_access",
+      "severity": "medium",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "contains",
+        "minCoverage": 0.45,
+        "wholeWordsOnly": true
+      },
+      "messageTemplate": "Privileged access answer is missing substantial policy language from the canonical answer",
+      "resolutionGuidance": "Incorporate the same control themes (e.g. JIT, logging, approval) as in the canonical text."
+    },
+    {
+      "id": "access_control_admin_mfa_required",
+      "description": "When canonical mandates admin MFA, the row must explicitly mention MFA or equivalent",
+      "topicKey": "access_control",
+      "subControlKey": "admin_mfa",
+      "severity": "critical",
+      "rowField": "finalAnswer",
+      "canonicalField": "answer",
+      "config": {
+        "type": "required_term_missing",
+        "requiredTerms": ["MFA", "multi-factor", "2FA", "two-factor"],
+        "requireAll": false,
+        "minRequired": 1,
+        "canonicalContainsAny": ["required", "mandatory", "enforced", "must", "all administrative", "all admins"]
+      },
+      "messageTemplate": "Canonical requires strong authentication for admins but the row does not mention MFA",
+      "resolutionGuidance": "State MFA/2FA for administrative access to match the canonical requirement, or update canonical if policy changed."
+    }
+  ]
+}

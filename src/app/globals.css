@@ -1,26 +1,256 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* --- COLORS (Semantic) --- */
+  --brand-navy: #0f172a;
+  --brand-navy-soft: #1e293b;
+  --intelligence-blue: #2563eb;
+  --intelligence-blue-soft: rgba(37, 99, 235, 0.05);
+  --trust-green: #10b981;
+  --trust-green-soft: rgba(16, 185, 129, 0.1);
+  --warning-amber: #f59e0b;
+  --warning-amber-soft: rgba(245, 158, 11, 0.1);
+  --error-red: #ef4444;
+  --error-red-soft: rgba(239, 68, 68, 0.1);
+  
+  --surface-light: #ffffff;
+  --surface-base: #f8fafc;
+  --surface-panel: #ffffff;
+  --surface-border: #e2e8f0;
+  --surface-elevated: #ffffff;
+  --surface-dark: #0f172a;
+  --border-soft: #e2e8f0;
+  
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --text-inverse: #ffffff;
+
+  /* --- SPACING (Semantic) --- */
+  --section-gap-xl: 8rem;    /* 128px */
+  --section-gap-lg: 4rem;    /* 64px */
+  --panel-padding-lg: 3rem;  /* 48px */
+  --panel-padding-md: 2rem;  /* 32px */
+  --stack-gap-lg: 2rem;      /* 32px */
+  --stack-gap-md: 1.5rem;    /* 24px */
+  --stack-gap-sm: 1rem;      /* 16px */
+
+  /* --- RADIUS --- */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2.5rem;
+  --radius-full: 9999px;
+
+  /* --- ELEVATION --- */
+  --shadow-premium-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-premium-md: 0 4px 6px -1px rgba(15, 23, 42, 0.05);
+  --shadow-premium-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.04);
+  --shadow-premium-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.05);
+  --shadow-premium-2xl: 0 25px 50px -12px rgba(15, 23, 42, 0.1);
+  --shadow-glass: 0 8px 32px 0 rgba(15, 23, 42, 0.08);
+
+  --background: var(--surface-base);
+  --foreground: var(--text-primary);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Inter", var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+
+  /* Color Theme Mapping */
+  --color-brand-navy: var(--brand-navy);
+  --color-brand-navy-soft: var(--brand-navy-soft);
+  --color-intelligence-blue: var(--intelligence-blue);
+  --color-intelligence-blue-soft: var(--intelligence-blue-soft);
+  --color-trust-green: var(--trust-green);
+  --color-warning-amber: var(--warning-amber);
+  --color-error-red: var(--error-red);
+  
+  --color-accent-primary: var(--intelligence-blue);
+  --color-accent-primary-hover: #1d4ed8;
+
+  --color-surface-light: var(--surface-light);
+  --color-surface-base: var(--surface-base);
+  --color-surface-panel: var(--surface-panel);
+  --color-surface-border: var(--surface-border);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-dark: var(--surface-dark);
+  --color-border-soft: var(--border-soft);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-inverse: var(--text-inverse);
+
+  /* Shadow Mappings */
+  --shadow-premium-sm: var(--shadow-premium-sm);
+  --shadow-premium-md: var(--shadow-premium-md);
+  --shadow-premium-lg: var(--shadow-premium-lg);
+  --shadow-premium-xl: var(--shadow-premium-xl);
+  --shadow-premium-2xl: var(--shadow-premium-2xl);
+  --shadow-glass: var(--shadow-glass);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border-soft outline-intelligence-blue/50;
+  }
+
+  body {
+    @apply bg-surface-base text-text-primary antialiased selection:bg-intelligence-blue/10 selection:text-intelligence-blue;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-black tracking-tight text-text-primary;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  /* Typography Scale */
+  .text-display-2xl { font-size: 5rem; font-weight: 900; line-height: 0.9; letter-spacing: -0.05em; }
+  @media (min-width: 768px) { .text-display-2xl { font-size: 8rem; } }
+
+  .text-display-xl { font-size: 3.5rem; font-weight: 900; line-height: 1; letter-spacing: -0.04em; }
+  @media (min-width: 768px) { .text-display-xl { font-size: 5.5rem; } }
+
+  .text-display-lg { font-size: 3rem; font-weight: 900; line-height: 1.05; letter-spacing: -0.03em; }
+  @media (min-width: 768px) { .text-display-lg { font-size: 4.5rem; } }
+
+  .text-display-md { font-size: 2.25rem; font-weight: 900; line-height: 1.1; letter-spacing: -0.02em; }
+  @media (min-width: 768px) { .text-display-md { font-size: 3.75rem; } }
+
+  .text-display-sm { font-size: 1.5rem; font-weight: 900; line-height: 1.2; letter-spacing: -0.01em; }
+  @media (min-width: 768px) { .text-display-sm { font-size: 2.25rem; } }
+
+  /* Premium Containers */
+  .section-padding { @apply py-20 md:py-24 lg:py-32; }
+  
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-glass;
+  }
+  
+  .glass-card-dark {
+    @apply bg-slate-900/40 backdrop-blur-xl border border-white/10 shadow-2xl;
+  }
+
+  /* Layout Patterns */
+  .inner-container { @apply mx-auto max-w-7xl px-6 lg:px-8; }
+  
+  /* Unified Enterprise Design System */
+  
+  /* 1. Hero Card - High Impact Summaries */
+  .hero-card {
+    @apply rounded-2xl border border-border-soft/60 bg-surface-elevated shadow-premium-xl p-8 md:p-12 overflow-hidden relative transition-all duration-500;
+    background: radial-gradient(circle at top right, var(--intelligence-blue-soft), transparent), var(--surface-elevated);
+  }
+
+  /* 2. Section Card - Standard Content Container */
+  .section-card {
+    @apply rounded-xl border border-border-soft/50 bg-surface-elevated shadow-premium-sm p-6 md:p-8 transition-all duration-300;
+  }
+  .section-card-hover {
+    @apply hover:border-intelligence-blue/20 hover:shadow-premium-md;
+  }
+
+  /* 3. Compact Card - High Density Signals/Features */
+  .compact-card {
+    @apply rounded-lg border border-border-soft/40 bg-surface-base p-5 flex flex-col gap-4 transition-all duration-200;
+  }
+  .compact-card-hover {
+    @apply hover:bg-surface-elevated hover:border-intelligence-blue/20 hover:shadow-premium-md;
+  }
+
+  /* 4. Evidence Card - Specialized Citation Container */
+  .evidence-card {
+    @apply rounded-xl border border-border-soft/30 bg-surface-base/50 p-5 transition-all duration-200;
+  }
+  .evidence-card-hover {
+    @apply hover:bg-surface-elevated hover:border-intelligence-blue/10 hover:shadow-premium-sm;
+  }
+
+  /* Specialized Intelligence Panels */
+  .intelligence-panel {
+    @apply bg-surface-dark text-white rounded-[2.5rem] p-10 border border-white/5 relative overflow-hidden;
+    background: radial-gradient(circle at 30% 20%, rgba(37,99,235,0.1), transparent 50%), var(--surface-dark);
+  }
+
+  .trust-panel-dark {
+    @apply bg-[#0b1222] rounded-[2.85rem] p-10 border border-white/5 shadow-2xl;
+  }
+  .section-card-hover {
+    @apply hover:border-accent-primary/20 hover:shadow-premium-md;
+  }
+  .section-panel { 
+    @apply rounded-xl border border-surface-border/50 bg-white shadow-premium-sm p-6 md:p-8 transition-all duration-300;
+  } 
+
+  /* 3. Compact Card - High Density Signals/Features */
+  .compact-card {
+    @apply rounded-lg border border-surface-border/40 bg-surface-panel p-5 flex flex-col gap-4 transition-all duration-200;
+  }
+  .compact-card-hover {
+    @apply hover:bg-white hover:border-accent-primary/20 hover:shadow-premium-md;
+  }
+  .compact-tile { 
+    @apply rounded-lg border border-surface-border/40 bg-surface-panel p-5 flex flex-row items-center justify-between transition-all duration-200;
+  } 
+
+  /* 4. Evidence Card - Specialized Citation Container */
+  .evidence-card {
+    @apply rounded-xl border border-surface-border/30 bg-surface-base/50 p-5 transition-all duration-200;
+  }
+  .evidence-card-hover {
+    @apply hover:bg-white hover:border-accent-primary/10 hover:shadow-premium-sm;
+  }
+
+  /* Semantic Typography Utilities */
+  .text-hero-title { @apply text-3xl md:text-4xl font-black font-display tracking-tight text-text-primary; }
+  .text-section-title { @apply text-xl md:text-2xl font-black font-display tracking-tight text-text-primary; }
+  .text-subsection { @apply text-base font-bold text-text-primary tracking-tight; }
+  .text-body-lg { @apply text-lg text-text-secondary leading-relaxed font-medium; }
+  .text-body-md { @apply text-base text-text-secondary leading-relaxed; }
+  .text-body-sm { @apply text-sm text-text-secondary leading-relaxed; }
+  .text-metadata { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: var(--text-muted); }
+  .text-eyebrow { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.4em; color: var(--intelligence-blue); }
+  .text-caption { @apply text-[11px] font-medium text-text-muted; }
+
+  /* Brand Typography */
+  .logo-wordmark {
+    @apply font-display font-black uppercase tracking-[0.1em] text-xl;
+  }
+  
+  /* Animations */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-up {
+    animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-primary to-indigo-400;
+  }
+
+  /* Shared Layout Spacing Tokens */
+  .layout-section-gap-xl { @apply space-y-[var(--section-gap-xl)]; }
+  .layout-section-gap-lg { @apply space-y-[var(--section-gap-lg)]; }
+  .layout-panel-padding-lg { @apply p-[var(--panel-padding-lg)]; }
+  .layout-panel-padding-md { @apply p-[var(--panel-padding-md)]; }
+  .layout-stack-gap-lg { @apply space-y-[var(--stack-gap-lg)]; }
+  .layout-stack-gap-md { @apply space-y-[var(--stack-gap-md)]; }
+  .layout-stack-gap-sm { @apply space-y-[var(--stack-gap-sm)]; }
+  .layout-meta-gap-sm { @apply gap-3; }
+  .layout-icon-title-gap { @apply gap-4; }
+  .layout-title-desc-gap { @apply space-y-2; }
+  
+  /* Horizontal Rhythm */
+  .layout-max-width { @apply max-w-5xl mx-auto w-full; }
+  .layout-max-width-lg { @apply max-w-7xl mx-auto w-full; }
 }
