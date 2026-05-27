@@ -100,7 +100,7 @@ export function SignUpForm() {
             onChange={(e) => setPassword(e.target.value)}
             className="w-full rounded-lg border border-surface-border bg-surface-base px-3.5 py-2.5 text-sm transition-all focus:border-accent-primary focus:ring-2 focus:ring-accent-primary/20 outline-none placeholder:text-text-muted"
           />
-          <p className="mt-1.5 text-[11px] text-text-muted font-medium">At least 8 characters with numbers and symbols recommended.</p>
+          <p className="mt-1.5 text-[11px] text-text-muted font-medium">Must be at least 8 characters with uppercase, lowercase, numbers, and symbols.</p>
           {fieldErrors.password?.length ? (
             <p className="mt-1.5 text-sm font-medium text-feedback-error">{fieldErrors.password.join(", ")}</p>
           ) : null}

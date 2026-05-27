@@ -103,6 +103,7 @@ export default function ResetPasswordPage() {
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 />
               </div>
+              <p className="mt-1 text-[11px] text-text-muted font-medium">Must be at least 8 characters with uppercase, lowercase, numbers, and symbols.</p>
             </div>
 
             <div className="space-y-2">

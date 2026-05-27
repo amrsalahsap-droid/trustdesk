@@ -5,7 +5,12 @@ import { z } from "zod";
 
 const Schema = z.object({
   token: z.string().min(1),
-  password: z.string().min(8),
+  password: z.string()
+    .min(8, "Password must be at least 8 characters")
+    .refine((v) => /[a-z]/.test(v), { message: "Password must contain at least one lowercase letter" })
+    .refine((v) => /[A-Z]/.test(v), { message: "Password must contain at least one uppercase letter" })
+    .refine((v) => /[0-9]/.test(v), { message: "Password must contain at least one number" })
+    .refine((v) => /[^A-Za-z0-9]/.test(v), { message: "Password must contain at least one special character" }),
 });
 
 export async function POST(request: Request) {
